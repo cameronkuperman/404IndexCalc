@@ -45,7 +45,7 @@ class IndexCalc:
         
         while True:
             for i in range(2 * len(pl)):
-                k = random.randint(1,p)
+                k = random.randint(1,p-2)
                 num = self.g**k % p 
                 
                 if max(self.factor(num)) > max(pl):
