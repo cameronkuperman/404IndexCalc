@@ -1,9 +1,10 @@
 import primesieve
 import random
-import numpy as np
+
 from math import exp, sqrt, log
 import math
 import sympy
+from itertools import combinations
 class IndexCalc:
     def __init__(self, prime, g, ):
         self.p = prime
@@ -18,22 +19,53 @@ class IndexCalc:
         return sympy.factorint(num)
     def computeAllFactors(self, b):
         return primesieve.primes(b)
+    
+
+    def find_invertible_subsystem(self,sample_vectors, sample_ks, pl, p):
+        m = len(pl)
+        mod = p - 1
+
+        for idxs in combinations(range(len(sample_vectors)), m):
+            rows = [sample_vectors[i] for i in idxs]
+            rhs = [sample_ks[i] for i in idxs]
+
+            A = sympy.Matrix(rows)
+            det = A.det()
+
+            if sympy.gcd(det, mod) == 1:
+                b = sympy.Matrix(rhs)
+                return A, b
+
+        return None, None
+
     def computeFactorBaseLogs(self, p ):
-        rank= 0 
-        matrix = np.zeros((len(pl), len(pl)))
         b, pl = self.computeFactorBase(p)
-        while (rank<len(pl)):
-            k = random.randint(self.p)
-            num = self.g**k % p 
-            if max(self.computeAllFactors(num)) > max(pl):
-                continue
-            matrix[rank]=self.createLogVector(num)
-            if np.linalg.matrix_rank(matrix)>rank:
-                rank+=1
-                continue
-            matrix[rank]= np.zeros(len(pl))
+        sample_vectors = []
+        vec = []
+        
+        while True:
+            for i in range(2 * len(pl)):
+                k = random.randint(1,p)
+                num = self.g**k % p 
+                
+                if max(self.factor(num)) > max(pl):
+                    i-=1
+                    continue
+                _, bl = self.computeFactorBase(p)
+                sample_vectors.append(self.createLogVector(num,bl ))
+                vec.append(k)
             
-        logsolutions = np.linalg.solve(matrix)
+            A,b = self.find_invertible_subsystem(sample_vectors, vec , pl, p)
+            if A is None:
+                vec = []
+                sample_vectors = []
+                continue
+            else:
+                inverse = A.inv_mod(p-1)
+
+                break
+        
+        logsolutions = inverse* b
 
         return {pl[i]: logsolutions[i] for i in range(len(pl))}
 
@@ -49,13 +81,12 @@ class IndexCalc:
 
             
 
-        return #dict of the actual factor base logs e.g. like factors etc... and their corresponding logs
-    def solveForX(self, num ):
-        pfactordict = self.computeFactorBaseLogs(self.p)
-        factors = sympy.factorint(num % self.p)
+    def solveForX(self, num ,p):
+        pfactordict = self.computeFactorBaseLogs(p)
+        factors = sympy.factorint(num % p)
         x=0
         for key in factors:
             x+=pfactordict[key]*factors[key]
 
 
-        return x
+        return x % (p-1)
