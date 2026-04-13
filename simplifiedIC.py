@@ -37,6 +37,12 @@ class IndexCalc:
                 return A, b
 
         return None, None
+    def turnBSmooth(self, num, p, bound, g):
+        x=0
+        while max(self.factor(num))>bound:
+            num = num*g
+            x+=1
+        return num, x
 
     def computeFactorBaseLogs(self, p ):
         b, pl = self.computeFactorBase(p)
@@ -90,3 +96,11 @@ class IndexCalc:
 
 
         return x % (p-1)
+    def indexCalcAlgoFull(self, p, g, num):
+        b, factor_base = self.computeFactorBase(p)
+        num, x = self.turnBSmooth(num, p, b, g)
+        k = self.solveForX(num, p )
+        return (k-x ) % (p-1)
+
+
+

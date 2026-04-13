@@ -15,7 +15,7 @@ def main():
 
     ic = IndexCalc(p, g)
     b, factor_base = ic.computeFactorBase(p)
-
+    print(f"X FROM INDEX CLAC: {ic.indexCalcAlgoFull(p , g, target)}")
     print(f"p={p}, g={g}, target={target}")
     print("factor base bound:", b)
     print("factor base:", list(factor_base))
