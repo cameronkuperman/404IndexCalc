@@ -40,7 +40,7 @@ class IndexCalc:
     def turnBSmooth(self, num, p, bound, g):
         x=0
         while max(self.factor(num))>bound:
-            num = num*g
+            num = num*g % p
             x+=1
         return num, x
 
