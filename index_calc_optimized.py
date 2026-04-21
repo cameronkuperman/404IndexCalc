@@ -1,8 +1,6 @@
-import primesieve
 import random
 from math import exp, sqrt, log
 import sympy
-from itertools import combinations
 
 
 class IndexCalc:
@@ -16,13 +14,13 @@ class IndexCalc:
 
     def computeFactorBase(self, p: int) -> tuple[int, list[int]]:
         if p not in self._factor_base_cache:
-            b = int(exp(sqrt(log(p) * log(log(p)))))
-            prime_list = primesieve.primes(b)
+            b = min(500, int(exp(sqrt(log(p) * log(log(p))))))
+            prime_list = self.computeAllFactors(b)
             self._factor_base_cache[p] = (b, prime_list)
         return self._factor_base_cache[p]
 
     def computeAllFactors(self, b: int) -> list[int]:
-        return primesieve.primes(b)
+        return list(sympy.primerange(1, b + 1))
 
     def factor(self, num: int) -> dict[int, int]:
         return sympy.factorint(num)
@@ -57,15 +55,41 @@ class IndexCalc:
     ) -> tuple[sympy.Matrix | None, sympy.Matrix | None]:
         m = len(pl)
         mod = p - 1
-        for idxs in combinations(range(len(sample_vectors) - 1, -1, -1), m):
-            """ Optimization 5: use a FILO algorithm instead of FIFO in order to
-            increase chance of lin ind rows"""
-            rows = [sample_vectors[i] for i in idxs]
-            rhs  = [sample_ks[i]      for i in idxs]
-            A    = sympy.Matrix(rows)
-            det  = A.det()
-            if sympy.gcd(int(det), mod) == 1:
-                return A, sympy.Matrix(rhs)
+        pivot_rows: list[tuple[int, list[int], int]] = []
+        selected_idxs: list[int] = []
+        used_cols: set[int] = set()
+
+        for idx in range(len(sample_vectors) - 1, -1, -1):
+            row = [int(value) % mod for value in sample_vectors[idx]]
+            rhs = int(sample_ks[idx]) % mod
+
+            for pivot_col, pivot_row, pivot_rhs in pivot_rows:
+                factor = row[pivot_col]
+                if factor == 0:
+                    continue
+                row = [(value - factor * pivot_value) % mod for value, pivot_value in zip(row, pivot_row)]
+                rhs = (rhs - factor * pivot_rhs) % mod
+
+            pivot_col = None
+            for col, value in enumerate(row):
+                if col not in used_cols and sympy.gcd(value, mod) == 1:
+                    pivot_col = col
+                    break
+            if pivot_col is None:
+                continue
+
+            inv = int(sympy.mod_inverse(row[pivot_col], mod))
+            row = [(value * inv) % mod for value in row]
+            rhs = (rhs * inv) % mod
+
+            pivot_rows.append((pivot_col, row, rhs))
+            selected_idxs.append(idx)
+            used_cols.add(pivot_col)
+
+            if len(selected_idxs) == m:
+                rows = [sample_vectors[i] for i in selected_idxs]
+                rhs_values = [sample_ks[i] for i in selected_idxs]
+                return sympy.Matrix(rows), sympy.Matrix(rhs_values)
         return None, None
 
     def computeFactorBaseLogs(self, p: int) -> dict[int, int]:
@@ -80,7 +104,7 @@ class IndexCalc:
         sample_ks:      list[int]       = []
 
         while True:
-            needed = max(0, 2 * m - len(sample_vectors))
+            needed = max(2 * m, len(sample_vectors) + max(10, m // 2))
             attempts = 0
             max_attempts = needed * 20
 

@@ -1,4 +1,3 @@
-import primesieve
 import random
 
 from math import exp, sqrt, log
@@ -18,7 +17,7 @@ class IndexCalc:
     def factor(self, num):
         return sympy.factorint(num)
     def computeAllFactors(self, b):
-        return primesieve.primes(b)
+        return list(sympy.primerange(1, b + 1))
     
 
     def find_invertible_subsystem(self,sample_vectors, sample_ks, pl, p):
