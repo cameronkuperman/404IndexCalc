@@ -108,7 +108,7 @@ class IndexCalc:
             attempts = 0
             max_attempts = needed * 20
 
-            while len(sample_vectors) < 2 * m and attempts < max_attempts:
+            while len(sample_vectors) < needed and attempts < max_attempts:
                 attempts += 1
                 k   = random.randint(1, mod - 1)
                 num = pow(self.g, k, p)
